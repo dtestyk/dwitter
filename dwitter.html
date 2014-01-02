@@ -1,0 +1,113 @@
+<!DOCTYPE HTML> 
+<head>
+<style>
+  input {
+    background: transparent;
+  }
+
+  #controls {
+    background: #ddd;
+    position: fixed;
+    top: 0px;
+    left: 0px;
+  }
+  
+  #my_id, #your_id {
+    width: 120px;
+  }
+  
+  #outcoming {
+    width: 250px;
+  }
+  
+
+  #incoming {
+    margin-top: 60px;
+    font-size: 16px;
+  }
+</style>
+
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script> 
+<script src="http://cdn.peerjs.com/0.3/peer.js"></script>
+<script>
+  $(document).ready(function() {
+    var leaders = {}
+    var followers = {}
+    var me = new Peer({key: '5q1bmiaw8q5gsyvi'});
+    me.on('open', function(id){
+      my_id.value = id
+    })
+    
+    
+    function send(str){
+      append(str)
+      for(var id in followers){
+        var c = followers[id]
+        c.send(str)
+      }
+    }
+    
+    function append(str){
+      var msg = document.createElement('div')
+      var re = document.createElement('button')
+      var txt = document.createElement('span')
+      
+      re.innerHTML = 're'
+      txt.innerHTML = my_id.value+': '+str
+      
+      re.onclick = function(){
+        send(txt.innerHTML)
+      }
+
+      msg.appendChild(txt)
+      msg.appendChild(re)        
+      incoming.appendChild(msg)
+      window.scrollTo(0,document.body.scrollHeight);
+    }
+    
+    function follow(c){
+      //var id = c.peer
+      //leaders[id] = c
+      c.on('data', function(data) {
+        append(data)
+      })
+    }
+    
+    me.on('connection', function(c) {
+      var id = c.peer
+      followers[id] = c
+    });
+
+    btn_conn.onclick = function(){
+      var c = me.connect(your_id.value)
+      follow(c)
+    }
+    btn_send.onclick = function(){
+      var str = outcoming.value
+      if(str != ''){
+        send(str)
+        outcoming.value = ''
+      }
+      outcoming.focus()
+    }
+    outcoming.onkeypress = function (e) {
+      var code = e.keyCode || e.which
+      if (code === 13) btn_send.onclick()
+    }
+  })
+</script>
+</head> 
+ 
+<body> 
+  <div id=controls>
+    <input type=text id=my_id placeholder='my id' readonly />
+    <input type=text id=your_id placeholder='publisher id' />
+    <button id=btn_conn>follow</button>
+    <div>
+      <input type=text id=outcoming placeholder='enter message here'/>
+      <button id=btn_send>dweet</button>
+    </div>
+  </div>
+  <div id=incoming></div>
+</body> 
+</html> 
