@@ -25,17 +25,35 @@
     margin-top: 60px;
     font-size: 16px;
   }
+  
+  #rules {
+	width: 500px;
+  }
 </style>
 
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script> 
 <script src="http://cdn.peerjs.com/0.3/peer.js"></script>
 <script>
+  var rules = []
+
+  function replace_pair(str, pair){
+    var src=pair[0]
+    var dst= pair[1]
+    var re=new RegExp(src, 'g')
+    return str.replace(re, dst)
+  }
+	
   $(document).ready(function() {
+    var memo_rules = document.querySelector('textarea#rules')
+  
     var leaders = {}
     var followers = {}
     var me = new Peer({key: '5q1bmiaw8q5gsyvi'});
     me.on('open', function(id){
       my_id.value = id
+      memo_rules.value='["'+id+'", "<span style=\'color:red;\'>@me</span>"]'
+      update_rules()
+      update_incoming_view()
     })
     
     
@@ -53,10 +71,11 @@
       var txt = document.createElement('span')
       
       re.innerHTML = 're'
-      txt.innerHTML = my_id.value+': '+str
+      var text=my_id.value+': '+str
+      txt.originalText=text
       
       re.onclick = function(){
-        send(txt.innerHTML)
+        send(txt.originalText)
       }
 
       msg.appendChild(txt)
@@ -71,6 +90,23 @@
       c.on('data', function(data) {
         append(data)
       })
+    }
+    
+    function update_rules(){
+      var str_rules = '['+memo_rules.value+']'
+      console.log(str_rules)
+      rules = JSON.parse(str_rules)
+      console.log(rules)
+    }
+    
+    function update_incoming_view(){
+      var txts=incoming.querySelectorAll('span')
+      for(var i=0;i<txts.length;i++){
+        var txt=txts[i]
+        if(txt.originalText){
+          txt.innerHTML=rules.reduce(replace_pair, txt.originalText)
+        }
+      }
     }
     
     me.on('connection', function(c) {
@@ -89,17 +125,21 @@
         outcoming.value = ''
       }
       outcoming.focus()
+      update_incoming_view()
     }
     outcoming.onkeypress = function (e) {
       var code = e.keyCode || e.which
       if (code === 13) btn_send.onclick()
     }
+    
+    memo_rules.onchange = function(){update_rules();update_incoming_view();}
   })
 </script>
 </head> 
  
-<body> 
+<body>
   <div id=controls>
+	<table><tr><td>
     <input type=text id=my_id placeholder='my id' readonly />
     <input type=text id=your_id placeholder='publisher id' />
     <button id=btn_conn>follow</button>
@@ -107,6 +147,9 @@
       <input type=text id=outcoming placeholder='enter message here'/>
       <button id=btn_send>dweet</button>
     </div>
+	</td><td>
+	  <textarea id='rules'></textarea>
+	</td></tr></table>
   </div>
   <div id=incoming></div>
 </body> 
