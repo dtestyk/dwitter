@@ -31,9 +31,37 @@
 	width: 500px;
   }
 </style>
+<script>
+function load_script_promise(url){
+	return new Promise(function(resolve, reject){
+		var head = document.getElementsByTagName('head')[0]
+		var script = document.createElement('script')
+		script.type = 'text/javascript'
+		script.addEventListener('load', function(){
+			this.removeEventListener('load', arguments.callee);
+			resolve(script)
+		})
+		script.src = url;
+		head.appendChild(script);
+	})
+}
 
-<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script> 
-<script src="http://cdn.peerjs.com/0.3/peer.js"></script>
+var dom_ready_promise = function(){
+	return new Promise(function(resolve, reject){
+		var isReady = document.readyState=='loaded'||document.readyState=='complete'
+		
+		if(isReady){
+			resolve()
+		}else{
+			document.addEventListener('DOMContentLoaded', function () {
+				document.removeEventListener('DOMContentLoaded', arguments.callee)
+				resolve()
+			})
+		}
+	})
+}
+</script>
+
 <script>
   var rules = []
 
@@ -44,7 +72,10 @@
     return str.replace(re, dst)
   }
 	
-  $(document).ready(function() {
+  Promise.all([
+    dom_ready_promise(),
+    load_script_promise("http://cdn.peerjs.com/0.3/peer.js")
+  ]).then(function() {
     var memo_rules = document.querySelector('textarea#rules')
   
     var leaders = {}
