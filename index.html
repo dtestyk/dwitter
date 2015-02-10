@@ -119,7 +119,12 @@ var dom_ready_promise = function(){
     
     function follow(c){
       var id = c.peer
-      //leaders[id] = c
+      leaders[id] = c
+      var n=Object.keys(leaders).length
+      memo_rules.value+=',\n["'+id+'", "<span style=\'color:red;\'>@user'+n+'</span>"]'
+      update_rules()
+      update_incoming_view()
+      
       c.on('data', function(data) {
         append(id, data)
       })
