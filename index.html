@@ -2,7 +2,7 @@
 <html>
 <head>
 <style>
-  input {
+  input, textarea {
     background: transparent;
   }
 
@@ -28,7 +28,7 @@
   }
   
   #rules {
-	width: 500px;
+	  width: 500px;
   }
 </style>
 <script>
@@ -186,7 +186,7 @@ var dom_ready_promise = function(){
       <button id=btn_send>dweet</button>
     </div>
 	</td><td>
-	  <textarea id='rules'></textarea>
+	  <textarea id='rules' placeholder='view replace rules'></textarea>
 	</td></tr></table>
   </div>
   <div id=incoming></div>
