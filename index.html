@@ -90,20 +90,20 @@ var dom_ready_promise = function(){
     
     
     function send(str){
-      append(str)
+      append(my_id.value, str)
       for(var id in followers){
         var c = followers[id]
         c.send(str)
       }
     }
     
-    function append(str){
+    function append(id, str){
       var msg = document.createElement('div')
       var re = document.createElement('button')
       var txt = document.createElement('span')
       
       re.innerHTML = 're'
-      var text=my_id.value+': '+str
+      var text=id+': '+str
       txt.originalText=text
       
       re.onclick = function(){
@@ -118,10 +118,10 @@ var dom_ready_promise = function(){
     }
     
     function follow(c){
-      //var id = c.peer
+      var id = c.peer
       //leaders[id] = c
       c.on('data', function(data) {
-        append(data)
+        append(id, data)
       })
     }
     
