@@ -1,0 +1,228 @@
+<!doctype html> 
+<html>
+<head>
+<style>
+  input, textarea {
+    background: transparent;
+  }
+
+  #controls {
+    background: #ddd;
+    position: fixed;
+    top: 0px;
+    left: 0px;
+  }
+  
+  #my_id, #your_id {
+    width: 120px;
+  }
+  
+  #outcoming {
+    width: 250px;
+  }
+  
+
+  #incoming {
+    margin-top: 60px;
+    font-size: 16px;
+  }
+  
+  #rules {
+	  width: 400px;
+  }
+  
+  #auto_re_rules {
+	  width: 400px;
+  }
+</style>
+<script>
+function load_script_promise(url){
+	return new Promise(function(resolve, reject){
+		var head = document.getElementsByTagName('head')[0]
+		var script = document.createElement('script')
+		script.type = 'text/javascript'
+		script.addEventListener('load', function(){
+			this.removeEventListener('load', arguments.callee);
+			resolve(script)
+		})
+		script.src = url;
+		head.appendChild(script);
+	})
+}
+
+var dom_ready_promise = function(){
+	return new Promise(function(resolve, reject){
+		var isReady = document.readyState=='loaded'||document.readyState=='complete'
+		
+		if(isReady){
+			resolve()
+		}else{
+			document.addEventListener('DOMContentLoaded', function () {
+				document.removeEventListener('DOMContentLoaded', arguments.callee)
+				resolve()
+			})
+		}
+	})
+}
+</script>
+
+<script>
+  var rules = []
+  var auto_re_rules = []
+
+  function replace_pair(str, pair){
+    var src=pair[0]
+    var dst= pair[1]
+    var re=new RegExp(src, 'g')
+    return str.replace(re, dst)
+  }
+	
+  Promise.all([
+    dom_ready_promise(),
+    load_script_promise("http://cdn.peerjs.com/0.3/peer.js")
+  ]).then(function() {
+    var memo_rules = document.querySelector('textarea#rules')
+    var memo_auto_re_rules = document.querySelector('textarea#auto_re_rules')
+  
+    var leaders = {}
+    var followers = {}
+    var me = new Peer({key: '5q1bmiaw8q5gsyvi'});
+    me.on('open', function(id){
+      my_id.value = id
+      memo_rules.value='["'+id+'", "<span style=\'color:red;\'>@me</span>"]'
+      memo_auto_re_rules.value='["[^]+", ""]'
+      update_rules()
+      update_auto_re_rules()
+      update_incoming_view()
+    })
+    
+    
+    function send(str){
+      append(my_id.value, str)
+      for(var id in followers){
+        var c = followers[id]
+        c.send(str)
+      }
+    }
+    
+    function auto_re(text){
+      var re_text = auto_re_rules.reduce(replace_pair, text)
+      if(re_text != ''){
+        send(re_text)
+      }
+    }
+    
+    function append(id, str){
+      var msg = document.createElement('div')
+      var re = document.createElement('button')
+      var txt = document.createElement('span')
+      
+      re.innerHTML = 're'
+      var text=id+': '+str
+      txt.originalText=text
+      
+      re.onclick = function(){
+        send(txt.originalText)
+      }
+
+      msg.appendChild(txt)
+      msg.appendChild(re)        
+      incoming.appendChild(msg)
+      update_incoming_view()
+      window.scrollTo(0,document.body.scrollHeight);
+    }
+    
+    function follow(c){
+      var id = c.peer
+      leaders[id] = c
+      var n=Object.keys(leaders).length
+      memo_rules.value+=',\n["'+id+'", "<span style=\'color:red;\'>@user'+n+'</span>"]'
+      update_rules()
+      update_incoming_view()
+      
+      c.on('data', function(data) {
+        var text=id+': '+data
+        append(id, data)
+        auto_re(text)
+      })
+    }
+    
+    function update_rules(){
+      var str_rules = '['+memo_rules.value+']'
+      console.log(str_rules)
+      rules = JSON.parse(str_rules)
+      console.log(rules)
+    }
+    
+    function update_auto_re_rules(){
+      var str_rules = '['+memo_auto_re_rules.value+']'
+      console.log(str_rules)
+      auto_re_rules = JSON.parse(str_rules)
+      console.log(auto_re_rules)
+    }
+    
+    function update_incoming_view(){
+      var txts=incoming.querySelectorAll('span')
+      for(var i=0;i<txts.length;i++){
+        var txt=txts[i]
+        if(txt.originalText){
+          var view_text = rules.reduce(replace_pair, txt.originalText)
+          txt.parentNode.style.display = view_text==''? 'none': 'block'
+          txt.innerHTML=view_text
+        }
+      }
+    }
+    
+    me.on('connection', function(c) {
+      var id = c.peer
+      followers[id] = c
+    });
+
+    btn_conn.onclick = function(){
+      var c = me.connect(your_id.value)
+      follow(c)
+    }
+    btn_send.onclick = function(){
+      var str = outcoming.value
+      if(str != ''){
+        send(str)
+        outcoming.value = ''
+      }
+      outcoming.focus()
+      update_incoming_view()
+    }
+    outcoming.onkeypress = function (e) {
+      var code = e.keyCode || e.which
+      if (code === 13) btn_send.onclick()
+    }
+    
+    memo_rules.onchange = function(){update_rules();update_incoming_view();}
+    memo_auto_re_rules.onchange = function(){update_auto_re_rules();update_incoming_view();}
+  })
+  
+//post is event
+//view filter
+//view map
+//repost filter
+//repost map
+</script>
+</head> 
+ 
+<body>
+  <div id=controls>
+	<table><tr><td>
+    <input type=text id=my_id placeholder='my id' readonly />
+    <input type=text id=your_id placeholder='publisher id' />
+    <button id=btn_conn>follow</button>
+    <div>
+      <input type=text id=outcoming placeholder='enter message here'/>
+      <button id=btn_send>dweet</button>
+    </div>
+	</td><td>
+	  <textarea id='rules' placeholder='view replace rules'></textarea>
+	  <textarea id='auto_re_rules' placeholder='auto re replace rules'></textarea>
+	</td></tr></table>
+  </div>
+  <div id=incoming></div>
+</body> 
+</html> 
